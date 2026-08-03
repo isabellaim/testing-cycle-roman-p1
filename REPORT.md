@@ -61,9 +61,9 @@ Two conventions are stated up front, because both affect the value of `V(G)`:
    `isinstance(n, bool)` into two nodes, because `or` short circuits; that
    raises `V(G)` from 6 to 7. The consequence of the convention used here is
    made explicit in section 3.1.)
-2. **A virtual sink node `54` is added.** The three `raise` statements and the
+2. **A virtual sink node `Snk` is added.** The three `raise` statements and the
    `return` are four exits from the function, and `V(G) = E - N + 2` requires a
-   single entry and a single exit. Node `54` does not correspond to a statement
+   single entry and a single exit. Node `Snk` does not correspond to a statement
    of the source; it is the common exit that makes the graph single-entry,
    single-exit, so the formula applies with `P = 1`.
 
@@ -85,7 +85,7 @@ Two conventions are stated up front, because both affect the value of `V(G)`:
 | `51` | `out.append(symbol)` | sequence node |
 | `52` | `remaining -= value` | sequence node |
 | `53` | `return "".join(out)` | sequence node |
-| `54` | — | **sink node** (virtual) |
+| `Snk` | — | **sink node** (virtual) |
 
 **N = 15.**
 
@@ -100,13 +100,13 @@ edge, and the body returns to the decision node.
 | e1 | `40 → 41` | sequence |
 | e2 | `41 → 42` | **true**, the argument is not a usable integer |
 | e3 | `41 → 43` | false |
-| e4 | `42 → 54` | raise, leaves the function |
+| e4 | `42 → Snk` | raise, leaves the function |
 | e5 | `43 → 44` | **true**, `n < 1` |
 | e6 | `43 → 45` | false |
-| e7 | `44 → 54` | raise, leaves the function |
+| e7 | `44 → Snk` | raise, leaves the function |
 | e8 | `45 → 46` | **true**, `n > 3999` |
 | e9 | `45 → 47` | false |
-| e10 | `46 → 54` | raise, leaves the function |
+| e10 | `46 → Snk` | raise, leaves the function |
 | e11 | `47 → 48` | sequence |
 | e12 | `48 → 49` | sequence |
 | e13 | `49 → 50` | another pair remains, enter the body |
@@ -115,7 +115,7 @@ edge, and the body returns to the decision node.
 | e16 | `50 → 49` | false, back to the `for` for the next pair |
 | e17 | `51 → 52` | sequence |
 | e18 | `52 → 50` | back edge, re-evaluate the `while` guard |
-| e19 | `53 → 54` | return |
+| e19 | `53 → Snk` | return |
 
 **E = 19.**
 
@@ -124,6 +124,16 @@ Note the two back edges that make this a graph with loops rather than a tree:
 the end of the `while` body to the `while` guard.
 
 ### 1.3 The graph
+
+![Control flow graph of to_roman](docs/img/control-flow-graph-to-roman.png)
+
+Each node carries the line number of the statement fragment it represents, and
+the label on its left gives its kind. Yellow nodes are the five predicates that
+determine `V(G)`: the three `if-then` nodes on lines 41, 43 and 45, and the two
+pre-test loops on lines 49 and 50.
+
+The same graph again below, with the edge identifiers `e1` to `e19` of section
+1.2 marked, so the basis paths of section 3 can be read off it:
 
 ```mermaid
 flowchart TD
@@ -141,18 +151,18 @@ flowchart TD
     n51["51<br/>out.append(symbol)"]
     n52["52<br/>remaining -= value"]
     n53["53<br/>return ''.join(out)"]
-    n54(["54 · sink"])
+    nSnk(["Snk · sink"])
 
     n40 -->|e1| n41
     n41 -->|"T · e2"| n42
     n41 -->|"F · e3"| n43
-    n42 -->|e4| n54
+    n42 -->|e4| nSnk
     n43 -->|"T · e5"| n44
     n43 -->|"F · e6"| n45
-    n44 -->|e7| n54
+    n44 -->|e7| nSnk
     n45 -->|"T · e8"| n46
     n45 -->|"F · e9"| n47
-    n46 -->|e10| n54
+    n46 -->|e10| nSnk
     n47 -->|e11| n48
     n48 -->|e12| n49
     n49 -->|"pair · e13"| n50
@@ -161,35 +171,11 @@ flowchart TD
     n50 -->|"F · e16"| n49
     n51 -->|e17| n52
     n52 -->|"back · e18"| n50
-    n53 -->|e19| n54
+    n53 -->|e19| nSnk
 ```
 
-Text form, for reading without a Mermaid renderer:
-
-```
-        40
-        |
-        v
-        41 --T--> 42 ------------------+
-        | F                            |
-        v                              |
-        43 --T--> 44 ------------------+
-        | F                            |
-        v                              |
-        45 --T--> 46 ------------------+
-        | F                            |
-        v                              |
-        47 --> 48                      |
-               |                       |
-               v                       |
-        +----> 49 --(exhausted)--> 53 --+
-        |      | (pair)                |
-        |      v                       v
-        +--F-- 50 <---+               54
-               | T    |
-               v      |
-               51 --> 52
-```
+If neither the image nor the Mermaid diagram renders, the graph is fully
+specified by the node table of section 1.1 and the edge table of section 1.2.
 
 ---
 
@@ -225,12 +211,12 @@ flipping that predicate's decision and leaving the others as in the baseline.
 
 | # | Path (sequence of nodes) | Flipped |
 |---|---|---|
-| **B** | `40 41 43 45 47 48 49 50 51 52 50 49 53 54` | — (baseline) |
-| **P1** | `40 41 42 54` | `41` → true |
-| **P2** | `40 41 43 44 54` | `43` → true |
-| **P3** | `40 41 43 45 46 54` | `45` → true |
-| **P4** | `40 41 43 45 47 48 49 53 54` | `49` → exhausted at once |
-| **P5** | `40 41 43 45 47 48 49 50 49 53 54` | `50` → false at once |
+| **B** | `40 41 43 45 47 48 49 50 51 52 50 49 53 Snk` | — (baseline) |
+| **P1** | `40 41 42 Snk` | `41` → true |
+| **P2** | `40 41 43 44 Snk` | `43` → true |
+| **P3** | `40 41 43 45 46 Snk` | `45` → true |
+| **P4** | `40 41 43 45 47 48 49 53 Snk` | `49` → exhausted at once |
+| **P5** | `40 41 43 45 47 48 49 50 49 53 Snk` | `50` → false at once |
 
 Independence check: each path introduces at least one edge that no earlier path
 uses — P1 introduces e2 and e4, P2 introduces e5 and e7, P3 introduces e8 and
