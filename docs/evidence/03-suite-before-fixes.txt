@@ -1,0 +1,32 @@
+E         'IIII' is contained here:
+E           XIIII
+
+tests/test_integration.py:67: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_acceptance.py::test_ac1_from_roman_trims_the_ends_of_its_input[  IV  -4]
+FAILED tests/test_acceptance.py::test_ac1_from_roman_trims_the_ends_of_its_input[X -10]
+FAILED tests/test_acceptance.py::test_ac1_from_roman_trims_the_ends_of_its_input[ MCMXCIV-1994]
+FAILED tests/test_acceptance.py::test_ac1_from_roman_trims_the_ends_of_its_input[\tIX\n-9]
+FAILED tests/test_acceptance.py::test_ac1_is_valid_roman_accepts_a_numeral_with_blanks_at_the_ends
+FAILED tests/test_acceptance.py::test_ac2_from_roman_rejects_a_non_canonical_numeral[IIII]
+FAILED tests/test_acceptance.py::test_ac2_from_roman_rejects_a_non_canonical_numeral[VIIII]
+FAILED tests/test_acceptance.py::test_ac2_from_roman_rejects_a_non_canonical_numeral[XXXX]
+FAILED tests/test_acceptance.py::test_ac2_from_roman_rejects_a_non_canonical_numeral[VV]
+FAILED tests/test_acceptance.py::test_ac2_from_roman_rejects_a_non_canonical_numeral[IVI]
+FAILED tests/test_acceptance.py::test_ac2_from_roman_rejects_a_non_canonical_numeral[LL]
+FAILED tests/test_acceptance.py::test_ac2_from_roman_rejects_a_non_canonical_numeral[DD]
+FAILED tests/test_acceptance.py::test_ac2_from_roman_rejects_a_non_canonical_numeral[CCCC]
+FAILED tests/test_acceptance.py::test_ac2_from_roman_rejects_a_non_canonical_numeral[MCMM]
+FAILED tests/test_acceptance.py::test_ac2_is_valid_roman_rejects_a_non_canonical_numeral[IIII]
+FAILED tests/test_acceptance.py::test_ac2_is_valid_roman_rejects_a_non_canonical_numeral[VIIII]
+FAILED tests/test_acceptance.py::test_ac2_is_valid_roman_rejects_a_non_canonical_numeral[XXXX]
+FAILED tests/test_acceptance.py::test_ac2_is_valid_roman_rejects_a_non_canonical_numeral[VV]
+FAILED tests/test_acceptance.py::test_ac2_is_valid_roman_rejects_a_non_canonical_numeral[IVI]
+FAILED tests/test_acceptance.py::test_ac2_each_subtractive_pair_appears_at_most_once
+FAILED tests/test_integration.py::test_add_roman_matches_the_mandatory_examples_of_section_7[II-II-IV]
+FAILED tests/test_integration.py::test_subtract_roman_matches_the_mandatory_examples_of_section_7[V-I-IV]
+FAILED tests/test_integration.py::test_the_result_of_add_roman_never_repeats_a_symbol_four_times[II-II]
+FAILED tests/test_integration.py::test_the_result_of_add_roman_never_repeats_a_symbol_four_times[III-I]
+FAILED tests/test_integration.py::test_the_result_of_add_roman_never_repeats_a_symbol_four_times[I-III]
+FAILED tests/test_integration.py::test_the_result_of_add_roman_never_repeats_a_symbol_four_times[X-IV]
+======================== 26 failed, 150 passed in 0.20s ========================
