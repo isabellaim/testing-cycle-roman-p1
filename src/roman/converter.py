@@ -56,7 +56,10 @@ def to_roman(n):
 def from_roman(s):
     if not isinstance(s, str):
         raise RomanError("value must be a string")
-    text = s.upper()
+    # Spec section 3: input arrives from a user facing field, so blanks at the
+    # ends are trimmed. Blanks inside the numeral are left in place and the
+    # character scan below rejects them.
+    text = s.strip().upper()
     if text == "":
         raise RomanError("empty string is not a roman numeral")
     for ch in text:
