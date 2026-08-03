@@ -50,196 +50,232 @@ Source under analysis, `src/roman/converter.py` lines 40 to 53:
 53      return "".join(out)
 ```
 
-The predicate on line 41 is **compound**. It is decomposed into two nodes, `N1`
-and `N2`, one per operand, because `or` short circuits: when `N1` is true the
-second operand is never evaluated, and that is a distinct path through the
-program. The three `raise` statements and the `return` are routed to a single
-exit node `N13`, so the graph is single entry, single exit and `V(G) = E - N + 2`
-applies with `P = 1`.
+The graph is a **program graph** in Jorgensen's sense: one node per statement
+fragment, labelled with its line number, edges representing flow of control.
+
+Two conventions are stated up front, because both affect the value of `V(G)`:
+
+1. **The compound predicate on line 41 is kept as a single node.** The `if`
+   statement is one decision of the program, and it is drawn as one two-way
+   branch. (The alternative convention splits `not isinstance(n, int)` and
+   `isinstance(n, bool)` into two nodes, because `or` short circuits; that
+   raises `V(G)` from 6 to 7. The consequence of the convention used here is
+   made explicit in section 3.1.)
+2. **A virtual sink node `54` is added.** The three `raise` statements and the
+   `return` are four exits from the function, and `V(G) = E - N + 2` requires a
+   single entry and a single exit. Node `54` does not correspond to a statement
+   of the source; it is the common exit that makes the graph single-entry,
+   single-exit, so the formula applies with `P = 1`.
 
 ### 1.1 Nodes
 
-| Node | Line | Statement or predicate | Kind |
-|---|---|---|---|
-| `N1` | 41a | `not isinstance(n, int)` | predicate |
-| `N2` | 41b | `isinstance(n, bool)` | predicate |
-| `N3` | 42 | `raise RomanError("value must be an integer")` | statement |
-| `N4` | 43 | `n < _MIN_VALUE` | predicate |
-| `N5` | 44 | `raise RomanError("value must be >= 1")` | statement |
-| `N6` | 45 | `n > _MAX_VALUE` | predicate |
-| `N7` | 46 | `raise RomanError("value must be <= 3999")` | statement |
-| `N8` | 47–48 | `out = []` ; `remaining = n` | block |
-| `N9` | 49 | `for value, symbol in _PAIRS` | predicate |
-| `N10` | 50 | `while remaining >= value` | predicate |
-| `N11` | 51–52 | `out.append(symbol)` ; `remaining -= value` | block |
-| `N12` | 53 | `return "".join(out)` | statement |
-| `N13` | — | exit | exit |
+| Node | Statement or predicate | Kind |
+|---|---|---|
+| `40` | `def to_roman(n)` | **source node** |
+| `41` | `not isinstance(n, int) or isinstance(n, bool)` | **if-then node** |
+| `42` | `raise RomanError("value must be an integer")` | sequence node |
+| `43` | `n < _MIN_VALUE` | **if-then node** |
+| `44` | `raise RomanError("value must be >= 1")` | sequence node |
+| `45` | `n > _MAX_VALUE` | **if-then node** |
+| `46` | `raise RomanError("value must be <= 3999")` | sequence node |
+| `47` | `out = []` | sequence node |
+| `48` | `remaining = n` | sequence node |
+| `49` | `for value, symbol in _PAIRS` | **pre-test loop** |
+| `50` | `while remaining >= value` | **pre-test loop** |
+| `51` | `out.append(symbol)` | sequence node |
+| `52` | `remaining -= value` | sequence node |
+| `53` | `return "".join(out)` | sequence node |
+| `54` | — | **sink node** (virtual) |
 
-Lines 47 and 48 are merged into `N8`, and lines 51 and 52 into `N11`: in both
-cases the two statements form a sequence with no branch between them, so they
-belong to the same node.
+**N = 15.**
 
-**N = 13.**
+Both loops are **pre-test**: `for` and `while` evaluate their condition before
+the body runs, so each is drawn as a decision node with an exit edge and a body
+edge, and the body returns to the decision node.
 
 ### 1.2 Edges
 
 | # | Edge | Condition |
 |---|---|---|
-| e1 | `N1 → N3` | `not isinstance(n, int)` is **true** |
-| e2 | `N1 → N2` | false, the second operand is evaluated |
-| e3 | `N2 → N3` | `isinstance(n, bool)` is **true** |
-| e4 | `N2 → N4` | false |
-| e5 | `N3 → N13` | raise |
-| e6 | `N4 → N5` | `n < 1` is **true** |
-| e7 | `N4 → N6` | false |
-| e8 | `N5 → N13` | raise |
-| e9 | `N6 → N7` | `n > 3999` is **true** |
-| e10 | `N6 → N8` | false |
-| e11 | `N7 → N13` | raise |
-| e12 | `N8 → N9` | sequence |
-| e13 | `N9 → N10` | another pair remains |
-| e14 | `N9 → N12` | `_PAIRS` exhausted |
-| e15 | `N10 → N11` | `remaining >= value` is **true** |
-| e16 | `N10 → N9` | false, next pair |
-| e17 | `N11 → N10` | back edge, re-evaluate the while guard |
-| e18 | `N12 → N13` | return |
+| e1 | `40 → 41` | sequence |
+| e2 | `41 → 42` | **true**, the argument is not a usable integer |
+| e3 | `41 → 43` | false |
+| e4 | `42 → 54` | raise, leaves the function |
+| e5 | `43 → 44` | **true**, `n < 1` |
+| e6 | `43 → 45` | false |
+| e7 | `44 → 54` | raise, leaves the function |
+| e8 | `45 → 46` | **true**, `n > 3999` |
+| e9 | `45 → 47` | false |
+| e10 | `46 → 54` | raise, leaves the function |
+| e11 | `47 → 48` | sequence |
+| e12 | `48 → 49` | sequence |
+| e13 | `49 → 50` | another pair remains, enter the body |
+| e14 | `49 → 53` | `_PAIRS` exhausted, leave the loop |
+| e15 | `50 → 51` | **true**, `remaining >= value` |
+| e16 | `50 → 49` | false, back to the `for` for the next pair |
+| e17 | `51 → 52` | sequence |
+| e18 | `52 → 50` | back edge, re-evaluate the `while` guard |
+| e19 | `53 → 54` | return |
 
-**E = 18.**
+**E = 19.**
+
+Note the two back edges that make this a graph with loops rather than a tree:
+`e16` returns from the inner `while` to the outer `for`, and `e18` returns from
+the end of the `while` body to the `while` guard.
 
 ### 1.3 The graph
 
 ```mermaid
 flowchart TD
-    N1["N1 · 41a<br/>not isinstance(n, int)"]
-    N2["N2 · 41b<br/>isinstance(n, bool)"]
-    N3["N3 · 42<br/>raise: not an integer"]
-    N4["N4 · 43<br/>n < 1"]
-    N5["N5 · 44<br/>raise: must be >= 1"]
-    N6["N6 · 45<br/>n > 3999"]
-    N7["N7 · 46<br/>raise: must be <= 3999"]
-    N8["N8 · 47-48<br/>out = [] ; remaining = n"]
-    N9{{"N9 · 49<br/>for value, symbol in _PAIRS"}}
-    N10{{"N10 · 50<br/>while remaining >= value"}}
-    N11["N11 · 51-52<br/>out.append(symbol)<br/>remaining -= value"]
-    N12["N12 · 53<br/>return ''.join(out)"]
-    N13(["N13 · exit"])
+    n40(["40 · source<br/>def to_roman(n)"])
+    n41{"41 · if-then<br/>not isinstance(n, int)<br/>or isinstance(n, bool)"}
+    n42["42<br/>raise: not an integer"]
+    n43{"43 · if-then<br/>n < 1"}
+    n44["44<br/>raise: must be >= 1"]
+    n45{"45 · if-then<br/>n > 3999"}
+    n46["46<br/>raise: must be <= 3999"]
+    n47["47<br/>out = []"]
+    n48["48<br/>remaining = n"]
+    n49{"49 · pre-test loop<br/>for value, symbol in _PAIRS"}
+    n50{"50 · pre-test loop<br/>while remaining >= value"}
+    n51["51<br/>out.append(symbol)"]
+    n52["52<br/>remaining -= value"]
+    n53["53<br/>return ''.join(out)"]
+    n54(["54 · sink"])
 
-    N1 -->|"T · e1"| N3
-    N1 -->|"F · e2"| N2
-    N2 -->|"T · e3"| N3
-    N2 -->|"F · e4"| N4
-    N3 -->|e5| N13
-    N4 -->|"T · e6"| N5
-    N4 -->|"F · e7"| N6
-    N5 -->|e8| N13
-    N6 -->|"T · e9"| N7
-    N6 -->|"F · e10"| N8
-    N7 -->|e11| N13
-    N8 -->|e12| N9
-    N9 -->|"pair · e13"| N10
-    N9 -->|"exhausted · e14"| N12
-    N10 -->|"T · e15"| N11
-    N10 -->|"F · e16"| N9
-    N11 -->|"e17"| N10
-    N12 -->|e18| N13
+    n40 -->|e1| n41
+    n41 -->|"T · e2"| n42
+    n41 -->|"F · e3"| n43
+    n42 -->|e4| n54
+    n43 -->|"T · e5"| n44
+    n43 -->|"F · e6"| n45
+    n44 -->|e7| n54
+    n45 -->|"T · e8"| n46
+    n45 -->|"F · e9"| n47
+    n46 -->|e10| n54
+    n47 -->|e11| n48
+    n48 -->|e12| n49
+    n49 -->|"pair · e13"| n50
+    n49 -->|"exhausted · e14"| n53
+    n50 -->|"T · e15"| n51
+    n50 -->|"F · e16"| n49
+    n51 -->|e17| n52
+    n52 -->|"back · e18"| n50
+    n53 -->|e19| n54
 ```
 
 Text form, for reading without a Mermaid renderer:
 
 ```
-N1 --T--> N3 --------------------------------+
-N1 --F--> N2 --T--> N3 ----------------------+
-          N2 --F--> N4 --T--> N5 ------------+
-                    N4 --F--> N6 --T--> N7 --+
-                              N6 --F--> N8   |
-                                        |    |
-                                        v    |
-                                  +---> N9 --(exhausted)--> N12 --> N13
-                                  |     |                            ^
-                                  |  (pair)                          |
-                                  |     v                            |
-                                  +-F-- N10 <---+                    |
-                                        |       |                    |
-                                       (T)      |                    |
-                                        v       |                    |
-                                       N11 -----+                    |
-                                                                     |
-  (the four exit arrows above all land on N13) ----------------------+
+        40
+        |
+        v
+        41 --T--> 42 ------------------+
+        | F                            |
+        v                              |
+        43 --T--> 44 ------------------+
+        | F                            |
+        v                              |
+        45 --T--> 46 ------------------+
+        | F                            |
+        v                              |
+        47 --> 48                      |
+               |                       |
+               v                       |
+        +----> 49 --(exhausted)--> 53 --+
+        |      | (pair)                |
+        |      v                       v
+        +--F-- 50 <---+               54
+               | T    |
+               v      |
+               51 --> 52
 ```
 
 ---
 
 ## 2. Cyclomatic complexity
 
-$$V(G) = E - N + 2 = 18 - 13 + 2 = \mathbf{7}$$
+$$V(G) = E - N + 2 = 19 - 15 + 2 = \mathbf{6}$$
 
-with **E = 18** edges and **N = 13** nodes, as enumerated in sections 1.1 and 1.2.
+with **E = 19** edges and **N = 15** nodes, as enumerated in sections 1.1
+and 1.2.
 
 Two independent cross checks confirm the value:
 
 | Method | Computation | Result |
 |---|---|---|
-| Edges and nodes | `18 - 13 + 2` | 7 |
-| Binary predicates + 1 | `N1, N2, N4, N6, N9, N10` → `6 + 1` | 7 |
-| Enclosed regions of the planar graph + 1 | `6 + 1` | 7 |
+| Edges and nodes | `19 - 15 + 2` | 6 |
+| Binary predicates + 1 | `41, 43, 45, 49, 50` → `5 + 1` | 6 |
+| Enclosed regions of the planar graph + 1 | `5 + 1` | 6 |
 
-The count of predicates is 6 and not 5 precisely because the compound predicate
-on line 41 was decomposed. Treating line 41 as a single node would give
-`V(G) = 6`, and would hide the path in which a `bool` argument is rejected by
-the second operand — the path that `test_p2_bool_reaches_the_second_operand_of_the_compound_guard`
-exercises.
+The five predicates are the three `if` statements on lines 41, 43 and 45, and
+the two pre-test loops on lines 49 and 50. Every other node is a sequence node
+with exactly one outgoing edge, so it contributes one node and one edge and
+leaves `E - N` unchanged — which is why splitting `out = []` and `remaining = n`
+into nodes `47` and `48` instead of merging them into one block does not affect
+`V(G)`.
 
 ---
 
 ## 3. Basis set
 
-`V(G) = 7`, so a basis has **7 linearly independent paths**. They are derived
+`V(G) = 6`, so a basis has **6 linearly independent paths**. They are derived
 with McCabe's baseline method: one baseline path, then one path per predicate,
 flipping that predicate's decision and leaving the others as in the baseline.
 
 | # | Path (sequence of nodes) | Flipped |
 |---|---|---|
-| **B** | `N1 N2 N4 N6 N8 N9 N10 N11 N10 N9 N12 N13` | — (baseline) |
-| **P1** | `N1 N3 N13` | `N1` → true |
-| **P2** | `N1 N2 N3 N13` | `N2` → true |
-| **P3** | `N1 N2 N4 N5 N13` | `N4` → true |
-| **P4** | `N1 N2 N4 N6 N7 N13` | `N6` → true |
-| **P5** | `N1 N2 N4 N6 N8 N9 N12 N13` | `N9` → exhausted at once |
-| **P6** | `N1 N2 N4 N6 N8 N9 N10 N9 N12 N13` | `N10` → false at once |
+| **B** | `40 41 43 45 47 48 49 50 51 52 50 49 53 54` | — (baseline) |
+| **P1** | `40 41 42 54` | `41` → true |
+| **P2** | `40 41 43 44 54` | `43` → true |
+| **P3** | `40 41 43 45 46 54` | `45` → true |
+| **P4** | `40 41 43 45 47 48 49 53 54` | `49` → exhausted at once |
+| **P5** | `40 41 43 45 47 48 49 50 49 53 54` | `50` → false at once |
 
 Independence check: each path introduces at least one edge that no earlier path
-uses — P1 introduces e1, P2 introduces e3, P3 introduces e6, P4 introduces e9,
-P5 introduces e14 in a body-free traversal, P6 introduces e16, and B introduces
-e15 and e17. The seven incidence vectors over the 18 edges are therefore
-linearly independent.
+uses — P1 introduces e2 and e4, P2 introduces e5 and e7, P3 introduces e8 and
+e10, P4 introduces e14 in a body-free traversal, P5 introduces e16, and B
+introduces e15, e17 and e18. The six incidence vectors over the 19 edges are
+therefore linearly independent, and every edge of section 1.2 appears in at
+least one of them.
 
 ### 3.1 Test data
 
 | Path | Input | Realised by |
 |---|---|---|
-| B | `to_roman(1000)` → `"M"` | `test_p0_while_body_executes_once` |
-| P1 | `to_roman("MCMXCIV")` | `test_p1_non_integer_takes_the_first_guard` |
-| P2 | `to_roman(True)` | `test_p2_bool_reaches_the_second_operand_of_the_compound_guard` |
-| P3 | `to_roman(0)` | `test_p3_below_the_lower_bound` |
-| P4 | `to_roman(4000)` | `test_p4_above_the_upper_bound` |
-| P5 | **not feasible** — see below | — |
-| P6 | `to_roman(1)` → `"I"` | `test_p6_while_predicate_false_on_the_first_pair` |
+| B | `to_roman(1000)` → `"M"` | `test_b_while_body_executes_once` |
+| P1 | `to_roman("MCMXCIV")` | `test_p1_non_integer_takes_the_guard_on_line_41` |
+| P2 | `to_roman(0)` | `test_p2_below_the_lower_bound` |
+| P3 | `to_roman(4000)` | `test_p3_above_the_upper_bound` |
+| P4 | **not feasible** — see below | — |
+| P5 | `to_roman(1)` → `"I"` | `test_p5_while_predicate_false_on_the_first_pair` |
 
-Two honest qualifications about this table:
+Three honest qualifications about this table:
 
-1. **P5 is infeasible.** It requires `N9` to find `_PAIRS` exhausted on its first
-   evaluation, which means an empty table. `_PAIRS` is a module level constant
-   with 13 entries, so no input can produce that traversal. P5 is a linearly
-   independent path *of the graph* and belongs in the basis; it is simply not
-   realisable. Infeasible basis paths are expected, and finding one is a normal
-   outcome of the method, not an error in the graph.
+1. **P4 is infeasible.** It requires node `49` to find `_PAIRS` exhausted on its
+   first evaluation, which means an empty table. `_PAIRS` is a module level
+   constant with 13 entries, so no input can produce that traversal. P4 is a
+   linearly independent path *of the graph* and belongs in the basis; it is
+   simply not realisable. Infeasible basis paths are expected, and finding one
+   is a normal outcome of the method, not an error in the graph.
 2. **The loop paths are traversed as combinations, not in isolation.** With 13
-   entries in `_PAIRS`, every terminating execution walks `N9 → N10` thirteen
-   times. B and P6 name the distinguishing edge each input first exercises
-   (`e15`/`e17` for B, `e16` for P6); no single input walks exactly B and
+   entries in `_PAIRS`, every terminating execution walks `49 → 50` thirteen
+   times. B and P5 name the distinguishing edge each input first exercises
+   (`e15`/`e17`/`e18` for B, `e16` for P5); no single input walks exactly B and
    nothing else. This is the ordinary situation for a graph containing a loop:
    the basis spans the path space, and real executions are linear combinations
    of the basis, not members of it.
+3. **The `bool` case does not get a basis path of its own.** `to_roman(True)`
+   and `to_roman("MCMXCIV")` both traverse P1, because line 41 is one node under
+   the convention of section 1. The two inputs decide the same branch through
+   different operands: `"MCMXCIV"` through `not isinstance(n, int)`, and `True`
+   through `isinstance(n, bool)`, since `bool` is a subclass of `int` and the
+   first operand is false for it. The suite tests both
+   (`test_p1_bool_reaches_the_second_operand_of_line_41`), and that
+   test is worth keeping: a basis set is a lower bound on what to test, not an
+   upper one. Under the decomposing convention the two operands would be
+   separate nodes, `V(G)` would be 7, and the `bool` input would have its own
+   basis path.
 
 ---
 
@@ -257,13 +293,19 @@ pairs `(out, 51, 51)` and `(out, 51, 53)`.
 
 | Variable | Definitions | Uses | Use kind | du-pairs |
 |---|---|---|---|---|
-| `n` | 40 (parameter) | 41a, 41b, 43, 45, 48 | p, p, p, p, **c** | `(n,40,41a)` p · `(n,40,41b)` p · `(n,40,43)` p · `(n,40,45)` p · `(n,40,48)` c |
+| `n` | 40 (parameter) | 41, 43, 45, 48 | p, p, p, **c** | `(n,40,41)` p · `(n,40,43)` p · `(n,40,45)` p · `(n,40,48)` c |
 | `out` | 47 | 51, 53 | c, c | `(out,47,51)` c · `(out,47,53)` c |
 | `remaining` | 48, **52** | 50, 52 | p, c | `(remaining,48,50)` p · `(remaining,48,52)` c · `(remaining,52,50)` p · `(remaining,52,52)` c |
 | `value` | 49 (loop target) | 50, 52 | p, c | `(value,49,50)` p · `(value,49,52)` c |
 | `symbol` | 49 (loop target) | 51 | c | `(symbol,49,51)` c |
 
-**Total: 14 du-pairs — 7 p-use pairs and 7 c-use pairs.**
+**Total: 13 du-pairs — 6 p-use pairs and 7 c-use pairs.**
+
+`n` is used **twice** on line 41, once in each operand of the `or`. Both are
+p-uses on the same line, so under the pair notation `(variable, def line, use
+line)` they collapse into the single pair `(n, 40, 41)`. The distinction between
+the two operands is a property of the predicate, not of the du-pair, and it is
+discussed in section 3.1.
 
 ### 4.1 The pairs created by the redefinition of `remaining`
 
@@ -288,18 +330,17 @@ The definition at line 52 **kills** the definition at line 48: after the first
 iteration, no definition-clear path from line 48 to any use survives. The last
 two pairs are the ones that only exist because of the redefinition, and both are
 covered — `(remaining, 52, 52)` needs the same pair to be consumed at least
-twice in a row, which `test_p0_while_body_executes_repeatedly` provides with
+twice in a row, which `test_b_while_body_executes_repeatedly` provides with
 `to_roman(3000)` → `"MMM"`.
 
 ### 4.2 All-uses coverage
 
-All 14 pairs are exercised by the suite, so the unit tests satisfy the **all-uses**
-criterion for `to_roman`:
+All 13 pairs are exercised by the suite, so the unit tests satisfy the
+**all-uses** criterion for `to_roman`:
 
 | Pair group | Covering input |
 |---|---|
-| `(n,40,41a)` | `to_roman("MCMXCIV")` |
-| `(n,40,41b)` | `to_roman(True)` |
+| `(n,40,41)` | `to_roman("MCMXCIV")` and `to_roman(True)` |
 | `(n,40,43)` | `to_roman(0)` |
 | `(n,40,45)` | `to_roman(4000)` |
 | `(n,40,48)`, `(out,47,51)`, `(out,47,53)`, `(remaining,48,50)`, `(remaining,48,52)`, `(value,49,50)`, `(value,49,52)`, `(symbol,49,51)` | `to_roman(3999)` |
@@ -658,8 +699,8 @@ Each level of the testing life cycle is planned from a different artifact, and
 that is why each one finds a different kind of defect. This system demonstrated
 all three cases in a single afternoon:
 
-- **The unit level, planned from the code**, produced a graph with `V(G) = 7`, a
-  basis set of 7 paths, all-uses coverage of `to_roman`, and 90% branch coverage
+- **The unit level, planned from the code**, produced a graph with `V(G) = 6`, a
+  basis set of 6 paths, all-uses coverage of `to_roman`, and 90% branch coverage
   with no partial branches. It found **no defects**. It could not: it derived its
   inputs from the same source that contained the wrong constant.
 - **The integration level, planned from the design in section 7**, found the

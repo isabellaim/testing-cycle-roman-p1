@@ -13,50 +13,53 @@ import pytest
 from roman.converter import RomanError, to_roman
 
 
-# --- Path P1: N1 true -> raise at line 42 -----------------------------------
-# not isinstance(n, int) is true, the second operand is never evaluated.
-def test_p1_non_integer_takes_the_first_guard():
+# --- Path P1: 40 41 42 54, the guard on line 41 is true ----------------------
+# Decided by the first operand: not isinstance(n, int) is true, so the second
+# operand is never evaluated.
+def test_p1_non_integer_takes_the_guard_on_line_41():
     with pytest.raises(RomanError) as exc:
         to_roman("MCMXCIV")
     assert "integer" in str(exc.value)
 
 
-def test_p1_float_takes_the_first_guard():
+def test_p1_float_takes_the_guard_on_line_41():
     with pytest.raises(RomanError) as exc:
         to_roman(4.0)
     assert "integer" in str(exc.value)
 
 
-# --- Path P2: N1 false, N2 true -> raise at line 42 --------------------------
-# bool is a subclass of int, so the first operand is false and the compound
-# predicate is only decided by its second operand.
-def test_p2_bool_reaches_the_second_operand_of_the_compound_guard():
+# --- Path P1 again, decided by the second operand of line 41 -----------------
+# bool is a subclass of int, so the first operand is false and the predicate is
+# decided by isinstance(n, bool). Because line 41 is a single node, this is the
+# same basis path as the two tests above; it is kept because a basis set is a
+# lower bound on what to test, not an upper one. See REPORT.md section 3.1.
+def test_p1_bool_reaches_the_second_operand_of_line_41():
     with pytest.raises(RomanError) as exc:
         to_roman(True)
     assert "integer" in str(exc.value)
 
 
-def test_p2_false_reaches_the_second_operand_of_the_compound_guard():
+def test_p1_false_reaches_the_second_operand_of_line_41():
     with pytest.raises(RomanError) as exc:
         to_roman(False)
     assert "integer" in str(exc.value)
 
 
-# --- Path P3: N4 true -> raise at line 44 ------------------------------------
-def test_p3_below_the_lower_bound():
+# --- Path P2: 40 41 43 44 54, the guard on line 43 is true -------------------
+def test_p2_below_the_lower_bound():
     with pytest.raises(RomanError) as exc:
         to_roman(0)
     assert ">= 1" in str(exc.value)
 
 
-def test_p3_negative_value():
+def test_p2_negative_value():
     with pytest.raises(RomanError) as exc:
         to_roman(-1)
     assert ">= 1" in str(exc.value)
 
 
-# --- Path P4: N4 false, N6 true -> raise at line 46 --------------------------
-def test_p4_above_the_upper_bound():
+# --- Path P3: 40 41 43 45 46 54, the guard on line 45 is true ----------------
+def test_p3_above_the_upper_bound():
     with pytest.raises(RomanError) as exc:
         to_roman(4000)
     assert "<= 3999" in str(exc.value)
@@ -71,19 +74,19 @@ def test_upper_boundary_is_accepted():
     assert to_roman(3999) == "MMMCMXCIX"
 
 
-# --- Path P6: the for body is entered, the while predicate is false ----------
-# For n = 1 the first pair is (1000, "M") and 1 >= 1000 is false, so the edge
-# N10 -> N9 is taken without executing the loop body for that pair.
-def test_p6_while_predicate_false_on_the_first_pair():
+# --- Path P5: the for body is entered, the while predicate is false ----------
+# For n = 1 the first pair is (1000, "M") and 1 >= 1000 is false, so edge e16,
+# 50 -> 49, is taken without executing the loop body for that pair.
+def test_p5_while_predicate_false_on_the_first_pair():
     assert to_roman(1) == "I"
 
 
-# --- Path P0 (baseline): the while body executes at least once ---------------
-def test_p0_while_body_executes_once():
+# --- Path B (baseline): the while body executes at least once, edges e15/e18 -
+def test_b_while_body_executes_once():
     assert to_roman(1000) == "M"
 
 
-def test_p0_while_body_executes_repeatedly():
+def test_b_while_body_executes_repeatedly():
     # remaining is redefined at line 52 on every iteration; three iterations of
     # the while loop for the same pair exercise that redefinition.
     assert to_roman(3000) == "MMM"
