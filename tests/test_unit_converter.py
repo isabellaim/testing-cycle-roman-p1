@@ -1,10 +1,9 @@
 # Part 3: unit level, structural tests for the remaining units of converter.py.
 #
-# Same rule as test_unit_to_roman.py: these tests are derived from the source
-# code and exist to drive branch coverage of src/roman/converter.py above 85%.
-# They exercise one function at a time and never compose two of them, so that
-# the integration level (Part 4) and the acceptance level (Part 5) still have
-# something left to find.
+# As in test_unit_to_roman.py, these tests are derived from the source code, and
+# they bring branch coverage of src/roman/converter.py above 85%. Each exercises
+# one function at a time without composing two of them; compositions are covered
+# at the integration level in Part 4.
 import pytest
 
 from roman.converter import (

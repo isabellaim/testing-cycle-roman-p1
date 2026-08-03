@@ -1,13 +1,13 @@
 # Part 3: unit level, structural tests for to_roman (converter.py lines 40-53).
 #
-# These tests are STRUCTURAL: they are derived from the source code, not from
-# SPECIFICATION.md. Each one realises a basis path of the control flow graph
-# documented in REPORT.md, and its oracle is what the code itself is written to
-# do (which guard raises, which loop edge is taken).
+# These tests are structural: they are derived from the source code rather than
+# from SPECIFICATION.md. Each corresponds to a basis path of the control flow
+# graph in REPORT.md section 3, and its oracle is what the code is written to do,
+# that is, which guard raises and which loop edge is taken.
 #
-# This is deliberate, and it is the point of the workshop: a structural test
-# suite can drive to_roman to full branch coverage and still not notice that an
-# entry of the _PAIRS table holds the wrong value. See REPORT.md, section 5.
+# A consequence of deriving tests this way is that full branch coverage of
+# to_roman is reachable without detecting the wrong value in the _PAIRS table.
+# See REPORT.md section 5.3.
 import pytest
 
 from roman.converter import RomanError, to_roman
@@ -30,9 +30,8 @@ def test_p1_float_takes_the_guard_on_line_41():
 
 # --- Path P1 again, decided by the second operand of line 41 -----------------
 # bool is a subclass of int, so the first operand is false and the predicate is
-# decided by isinstance(n, bool). Because line 41 is a single node, this is the
-# same basis path as the two tests above; it is kept because a basis set is a
-# lower bound on what to test, not an upper one. See REPORT.md section 3.1.
+# decided by isinstance(n, bool). Line 41 is a single node, so this is the same
+# basis path as the two tests above. See REPORT.md section 3.1.
 def test_p1_bool_reaches_the_second_operand_of_line_41():
     with pytest.raises(RomanError) as exc:
         to_roman(True)
@@ -92,9 +91,10 @@ def test_b_while_body_executes_repeatedly():
     assert to_roman(3000) == "MMM"
 
 
-# --- The loop terminates: remaining reaches 0 for every value in range -------
-# Oracle derived from the code: the while guard can only stop when remaining is
-# smaller than every pair value, and the smallest pair value is 1.
+# --- Properties derived from the code, holding for every value in range ------
+# The while guard can only stop when remaining is smaller than every pair value,
+# and the smallest pair value is 1, so the loop terminates and every symbol
+# appended comes from the _PAIRS table.
 @pytest.mark.parametrize("n", [1, 2, 3, 5, 10, 40, 50, 90, 100, 400, 500, 900, 1000, 3999])
 def test_every_symbol_appended_belongs_to_the_pairs_table(n):
     result = to_roman(n)

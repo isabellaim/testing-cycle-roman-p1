@@ -1,14 +1,14 @@
 # Part 5: acceptance level.
 #
-# These tests are FUNCTIONAL: they are derived from SPECIFICATION.md only, and
-# they were written without looking at the control flow of converter.py. Each
-# one implements one of the three acceptance criteria of REPORT.md, section 6,
-# written in Given / When / Then form.
+# These tests are functional: they are derived from SPECIFICATION.md alone and
+# were written without reference to the control flow of converter.py. Each
+# implements one of the three acceptance criteria of REPORT.md section 6, in
+# Given / When / Then form.
 #
-# At the moment they were written the suite was green and branch coverage of
-# src/roman/converter.py was 90%. Two of the three criteria still fail, because
-# they describe behaviour the code never implements: there is no branch to
-# cover, so no coverage metric can point at the gap.
+# When they were written the suite was passing and branch coverage of
+# src/roman/converter.py was 90%. Two of the three criteria failed, because they
+# describe behaviour the code did not implement; with no branch present, no
+# coverage metric could report the gap. See REPORT.md section 6.1.
 import pytest
 
 from roman.converter import RomanError, from_roman, is_valid_roman, subtract_roman
