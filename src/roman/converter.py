@@ -56,9 +56,7 @@ def to_roman(n):
 def from_roman(s):
     if not isinstance(s, str):
         raise RomanError("value must be a string")
-    # Spec section 3: input arrives from a user facing field, so blanks at the
-    # ends are trimmed. Blanks inside the numeral are left in place and the
-    # character scan below rejects them.
+    # Section 3: trim the ends only. Blanks left inside are rejected below.
     text = s.strip().upper()
     if text == "":
         raise RomanError("empty string is not a roman numeral")
@@ -71,7 +69,6 @@ def from_roman(s):
         total += _group_value(group)
     if total < _MIN_VALUE or total > _MAX_VALUE:
         raise RomanError("value out of range 1..3999")
-    # Spec section 4: only the canonical form of a value is accepted.
     _check_canonical(text, groups)
     return total
 
@@ -89,11 +86,10 @@ def _count_char(text, ch):
 
 
 def _scan_groups(text):
-    """Split a roman string into groups.
+    """Split the string into groups: a subtractive pair, or a single symbol.
 
-    A group is one of the six subtractive pairs of section 2 of the
-    specification, or a single symbol. Section 5 is enforced here: outside the
-    six pairs, no symbol may be followed by one of greater value.
+    Also enforces section 5: outside the six pairs, no symbol may be followed
+    by one of greater value.
     """
     groups = []
     i = 0
@@ -122,12 +118,7 @@ def _group_value(group):
 
 
 def _check_canonical(text, groups):
-    """Apply the five rules of section 4 of the specification.
-
-    The rules are the normative criterion. Canonical form is deliberately NOT
-    defined as to_roman(from_roman(s)) == s, which would use the code as its
-    own oracle and would accept any defect that to_roman happens to have.
-    """
+    """Apply the five canonical form rules of section 4."""
     # Rule 2: V, L and D appear at most once in the whole string.
     for symbol in "VLD":
         if _count_char(text, symbol) > 1:
@@ -157,9 +148,8 @@ def _check_canonical(text, groups):
                 raise RomanError("not canonical: subtractive pair " + group + " repeated")
             seen.add(group)
 
-    # Rules 4 and 5: group values are non-increasing from left to right, and
-    # after a subtractive pair every following group is worth less than the
-    # subtracted symbol, so IVI is rejected because 4 + 1 = 5 is written V.
+    # Rules 4 and 5: group values never increase, and after a subtractive pair
+    # every later group is worth less than the subtracted symbol, so IVI fails.
     limit = None
     for group in groups:
         value = _group_value(group)
