@@ -56,7 +56,6 @@ def to_roman(n):
 def from_roman(s):
     if not isinstance(s, str):
         raise RomanError("value must be a string")
-    # Section 3: trim the ends only. Blanks left inside are rejected below.
     text = s.strip().upper()
     if text == "":
         raise RomanError("empty string is not a roman numeral")
@@ -86,11 +85,6 @@ def _count_char(text, ch):
 
 
 def _scan_groups(text):
-    """Split the string into groups: a subtractive pair, or a single symbol.
-
-    Also enforces section 5: outside the six pairs, no symbol may be followed
-    by one of greater value.
-    """
     groups = []
     i = 0
     length = len(text)
@@ -119,12 +113,10 @@ def _group_value(group):
 
 def _check_canonical(text, groups):
     """Apply the five canonical form rules of section 4."""
-    # Rule 2: V, L and D appear at most once in the whole string.
     for symbol in "VLD":
         if _count_char(text, symbol) > 1:
             raise RomanError("not canonical: " + symbol + " appears more than once")
 
-    # Rule 1: I, X, C and M appear at most three times in a row.
     run_symbol = None
     run_length = 0
     for group in groups:
@@ -140,7 +132,6 @@ def _check_canonical(text, groups):
             run_symbol = None
             run_length = 0
 
-    # Rule 3: each of the six subtractive pairs appears at most once.
     seen = set()
     for group in groups:
         if len(group) == 2:
@@ -148,17 +139,15 @@ def _check_canonical(text, groups):
                 raise RomanError("not canonical: subtractive pair " + group + " repeated")
             seen.add(group)
 
-    # Rules 4 and 5: group values never increase, and after a subtractive pair
-    # every later group is worth less than the subtracted symbol, so IVI fails.
-    limit = None
+    max_allowed_next = None
     for group in groups:
         value = _group_value(group)
-        if limit is not None and value > limit:
+        if max_allowed_next is not None and value > max_allowed_next:
             raise RomanError("not canonical: group " + group + " is out of order")
         if len(group) == 2:
-            limit = _SINGLE[group[0]] - 1
+            max_allowed_next = _SINGLE[group[0]] - 1
         else:
-            limit = value
+            max_allowed_next = value
 
 
 def is_valid_roman(s):

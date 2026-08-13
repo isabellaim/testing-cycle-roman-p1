@@ -1,5 +1,3 @@
-# Part 3: unit tests for the rest of converter.py, derived from the source.
-# Each one exercises a single function; compositions belong to Part 4.
 import pytest
 
 from roman.converter import (
@@ -58,7 +56,6 @@ def test_from_roman_takes_the_subtractive_branch(text, expected):
     assert from_roman(text) == expected
 
 
-# A single trailing symbol has no lookahead available.
 def test_from_roman_handles_the_last_character_without_lookahead():
     assert from_roman("I") == 1
 
@@ -78,7 +75,6 @@ def test_from_roman_rejects_an_invalid_subtractive_pair(text):
     assert "invalid subtractive pair" in str(exc.value)
 
 
-# MMMM is well formed but worth 4000.
 def test_from_roman_rejects_a_well_formed_string_above_the_range():
     with pytest.raises(RomanError) as exc:
         from_roman("MMMM")

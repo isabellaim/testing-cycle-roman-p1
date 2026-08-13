@@ -1,18 +1,7 @@
-# Part 5: acceptance tests, written from SPECIFICATION.md without looking at the
-# control flow of converter.py. The three criteria are stated below and repeated
-# in REPORT.md section 7. When they were written the suite was passing at 90%
-# branch coverage, and AC-1 and AC-2 failed.
 import pytest
 
 from roman.converter import RomanError, from_roman, is_valid_roman, subtract_roman
 
-
-# AC-1, specification section 3.
-#   Given a roman numeral typed into a user facing field with stray blanks at
-#     the beginning or the end,
-#   When the system converts or validates it,
-#   Then the blanks at the ends are trimmed and the numeral is accepted, while
-#     blanks inside the numeral keep it invalid.
 
 @pytest.mark.parametrize("text,expected", [("  IV  ", 4), ("X ", 10), (" MCMXCIV", 1994), ("\tIX\n", 9)])
 def test_ac1_from_roman_trims_the_ends_of_its_input(text, expected):
@@ -37,12 +26,6 @@ def test_ac1_a_string_of_blanks_only_is_invalid(text):
     assert "empty string" in str(exc.value)
 
 
-# AC-2, specification section 4.
-#   Given a string that represents a value but is not the canonical form of
-#     that value,
-#   When the system converts or validates it,
-#   Then it is rejected with RomanError and is_valid_roman answers False.
-
 @pytest.mark.parametrize("text", ["IIII", "VIIII", "XXXX", "VV", "IVI", "LL", "DD", "CCCC", "MCMM"])
 def test_ac2_from_roman_rejects_a_non_canonical_numeral(text):
     with pytest.raises(RomanError) as exc:
@@ -63,12 +46,6 @@ def test_ac2_the_canonical_forms_of_the_table_are_still_accepted(text, expected)
 def test_ac2_each_subtractive_pair_appears_at_most_once():
     assert is_valid_roman("IXIX") is False
 
-
-# AC-3, specification section 7.
-#   Given two roman numerals whose difference is zero or negative,
-#   When subtract_roman is applied to them,
-#   Then the system raises RomanError instead of returning a numeral outside
-#     1 to 3999.
 
 def test_ac3_a_difference_of_zero_is_rejected():
     with pytest.raises(RomanError) as exc:

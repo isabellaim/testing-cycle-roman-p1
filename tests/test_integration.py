@@ -1,8 +1,3 @@
-# Part 4: integration tests for the collaboration of section 7 of the
-# specification. add_roman and subtract_roman sit on top of from_roman and
-# to_roman, and their result must be accepted by is_valid_roman. The expected
-# values come from the specification, since a composition has no source of its
-# own to derive them from.
 import pytest
 
 from roman.converter import (
@@ -38,8 +33,6 @@ def test_the_result_of_subtract_roman_is_accepted_by_is_valid_roman(a, b):
     assert is_valid_roman(subtract_roman(a, b)) is True
 
 
-# The two tests above compare the system against itself. Section 2 gives an
-# oracle that does not: a canonical numeral never repeats a symbol four times.
 @pytest.mark.parametrize("a,b", [("II", "II"), ("III", "I"), ("I", "III"), ("X", "IV")])
 def test_the_result_of_add_roman_never_repeats_a_symbol_four_times(a, b):
     result = add_roman(a, b)
@@ -58,8 +51,6 @@ def test_subtract_roman_agrees_with_the_arithmetic_of_its_two_components(a, b):
     assert from_roman(subtract_roman(a, b)) == from_roman(a) - from_roman(b)
 
 
-# The round trip closes only if to_roman writes the canonical string that
-# from_roman reads back, so these values are the ones with subtractive pairs.
 @pytest.mark.parametrize("n", [4, 9, 14, 40, 44, 49, 94, 400, 444, 1994, 2444, 3999])
 def test_to_roman_and_from_roman_close_the_round_trip_on_subtractive_values(n):
     assert from_roman(to_roman(n)) == n
